@@ -1,1 +1,3 @@
-# job-scout-ai
+# job-scout-
+
+Student: Haritz Eizagirre
