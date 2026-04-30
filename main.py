@@ -67,6 +67,7 @@ def main():
                 
                 with open(output_file, "w", encoding="utf-8") as f:
                     f.write(f"# Cover Letter for {final_state['job_title']} at {final_state['company']}\n\n")
+                    f.write(f"**URL:** {url}\n\n")
                     f.write(f"**Reason for Match:** {final_state['match_reason']}\n\n")
                     f.write("---\n\n")
                     f.write(final_state.get("cover_letter", ""))
