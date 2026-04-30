@@ -1,0 +1,15 @@
+# Environment
+.env
+venv/
+__pycache__/
+*.pyc
+
+# Outputs
+outputs/
+
+# User Data
+my_cv.txt
+urls.txt
+
+# Development
+mock_data/
