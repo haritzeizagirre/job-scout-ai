@@ -6,7 +6,7 @@ class MatchEvaluation(BaseModel):
     is_match: bool = Field(description="True if the candidate is a good match for the job, False otherwise.")
     match_reason: str = Field(description="A 1-2 sentence explanation of why the candidate is or is not a match.")
 
-def evaluate_job(job_title: str, company: str, job_description: str, my_cv: str) -> MatchEvaluation:
+def evaluate_job(target_role: str, experience_level: str, additional_filters: str, job_title: str, company: str, job_description: str, my_cv: str) -> MatchEvaluation:
     # Uses environment variables OPENAI_API_KEY and optionally OPENAI_BASE_URL
     llm = ChatOpenAI(model="openai/gpt-4o-mini", temperature=0) # using openai/gpt-4o-mini for openrouter compatibility
     
@@ -22,6 +22,10 @@ def evaluate_job(job_title: str, company: str, job_description: str, my_cv: str)
     prompt = PromptTemplate.from_template("""
     You are an expert technical recruiter evaluating a candidate for a role.
     
+    IMPORTANT: We are SPECIFICALLY looking for a "{target_role}" position.
+    Experience Level Required: {experience_level}
+    Additional User Filters: {additional_filters}
+    
     Job Title: {job_title}
     Company: {company}
     
@@ -31,13 +35,22 @@ def evaluate_job(job_title: str, company: str, job_description: str, my_cv: str)
     Candidate CV:
     {my_cv}
     
-    Evaluate if this candidate is a good match for the job based on their skills and experience.
+    Evaluate if this job is a match.
+    CRITICAL RULE 1: If the Job Title '{job_title}' or Job Description is NOT a "{target_role}" position, you MUST return is_match=False and explain that the role does not match what we are looking for.
+    CRITICAL RULE 2: If the job description strictly requires an experience level that conflicts with "{experience_level}", return is_match=False. (Ignore this rule if experience level is "Any").
+    CRITICAL RULE 3: If there are additional filters ("{additional_filters}") and the job clearly violates them, return is_match=False.
+    
+    If the job passes the filters, evaluate if the candidate's skills and experience make them a good fit.
+    
     Return a structured response with a boolean 'is_match' and a short 'match_reason'.
     """)
     
     chain = prompt | structured_llm
     
     return chain.invoke({
+        "target_role": target_role,
+        "experience_level": experience_level,
+        "additional_filters": additional_filters,
         "job_title": job_title,
         "company": company,
         "job_description": job_description,

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Scout Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Job Scout AI</h1>
+            <p>By Haritz Eizagirre</p>
+            <nav class="tabs">
+                <button id="tabDashboard" class="tab-btn active">Dashboard</button>
+                <button id="tabMatches" class="tab-btn">Matches</button>
+            </nav>
+        </header>
+        
+        <main>
+            <!-- DASHBOARD VIEW -->
+            <div id="view-dashboard" class="view active">
+                <section class="card cv-section">
+                    <h2>Your Resume / CV</h2>
+                    <textarea id="cvInput" placeholder="Paste your CV here..."></textarea>
+                    <div class="action-row">
+                        <button id="saveCvBtn" class="btn secondary-btn">Save CV</button>
+                        <button id="fillExampleBtn" class="btn secondary-btn" style="background-color: #e5ede7;">Fill with Example</button>
+                        <span id="saveStatus" class="status-msg"></span>
+                    </div>
+                </section>
+
+                <section class="card config-section">
+                    <h2>Scout Configuration</h2>
+                    
+                    <div class="input-group">
+                        <label for="roleSelect">Target Role</label>
+                        <select id="roleSelect">
+                            <option value="Software Engineer">Software Engineer</option>
+                            <option value="Frontend Developer">Frontend Developer</option>
+                            <option value="Backend Developer">Backend Developer</option>
+                            <option value="Full Stack Developer">Full Stack Developer</option>
+                            <option value="Mobile Developer">Mobile Developer</option>
+                            <option value="Data Scientist">Data Scientist</option>
+                            <option value="Machine Learning Engineer">Machine Learning Engineer</option>
+                            <option value="DevOps Engineer">DevOps Engineer</option>
+                            <option value="Product Manager">Product Manager</option>
+                            <option value="UI/UX Designer">UI/UX Designer</option>
+                            <option value="Customer Support">Customer Support</option>
+                            <option value="Other">Other / Custom...</option>
+                        </select>
+                        <input type="text" id="customRoleInput" placeholder="Type your custom role here..." class="hidden" style="margin-top: 12px;">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="experienceSelect">Experience Level</label>
+                        <select id="experienceSelect">
+                            <option value="Any">Any Experience Level</option>
+                            <option value="Entry Level / Junior">Entry Level / Junior</option>
+                            <option value="Mid-Level">Mid-Level</option>
+                            <option value="Senior / Lead">Senior / Lead</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="additionalFilters">Additional Filters (Optional)</label>
+                        <input type="text" id="additionalFilters" placeholder="e.g. Must be remote in Europe, No agencies...">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="boardSelect">Select Boards (Multi-select)</label>
+                        <select id="boardSelect" multiple size="4">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                </section>
+
+                <section class="execute-section">
+                    <button id="executeBtn" class="btn primary-btn large-btn">Start Scouting</button>
+                    <div id="executeStatus" class="status-msg execute-status"></div>
+                </section>
+            </div>
+
+            <!-- MATCHES LIST VIEW -->
+            <div id="view-matches" class="view hidden">
+                <section class="card results-section">
+                    <div class="results-header">
+                        <h2>Job Matches</h2>
+                        <button id="refreshBtn" class="btn secondary-btn">Refresh</button>
+                    </div>
+                    <div id="resultsContainer" class="results-container">
+                        <p class="status-msg">Click Refresh to load matched jobs.</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- MATCH DETAIL VIEW -->
+            <div id="view-detail" class="view hidden">
+                <section class="card detail-section">
+                    <div class="detail-header">
+                        <button id="backBtn" class="btn secondary-btn">&larr; Back to Matches</button>
+                        <h2 id="detailTitle" style="margin-left: 16px;"></h2>
+                    </div>
+                    <div id="detailContent" class="match-content">
+                        <!-- Rendered Markdown goes here -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>

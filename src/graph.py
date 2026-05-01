@@ -3,6 +3,9 @@ from langgraph.graph import StateGraph, END
 from src.agents import evaluate_job, draft_cover_letter
 
 class JobState(TypedDict):
+    target_role: str
+    experience_level: str
+    additional_filters: str
     job_title: str
     company: str
     job_description: str
@@ -14,6 +17,9 @@ class JobState(TypedDict):
 def evaluator_node(state: JobState):
     print(f"--- Evaluating Job: {state.get('job_title')} at {state.get('company')} ---")
     result = evaluate_job(
+        state['target_role'],
+        state.get('experience_level', 'Any'),
+        state.get('additional_filters', ''),
         state['job_title'],
         state['company'],
         state['job_description'],

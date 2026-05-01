@@ -1,0 +1,28 @@
+John Doe
+john.doe@example.com | (555) 123-4567 | linkedin.com/in/johndoe | github.com/johndoe
+
+SUMMARY
+A highly motivated Software Engineer with 3+ years of experience in developing scalable web applications. Passionate about clean code, performance optimization, and learning new technologies.
+
+EXPERIENCE
+Software Engineer - Tech Innovations Inc. (June 2021 - Present)
+- Developed and maintained RESTful APIs using Node.js and Express, serving over 10k daily active users.
+- Collaborated with frontend teams to integrate React components with backend services.
+- Optimized database queries in PostgreSQL, reducing response times by 30%.
+- Participated in code reviews and mentored junior developers.
+
+Junior Web Developer - WebSolutions LLC (January 2020 - May 2021)
+- Built responsive user interfaces using HTML5, CSS3, and modern JavaScript.
+- Assisted in the migration of legacy codebases to React.
+- Implemented automated testing using Jest and Cypress, improving code coverage by 15%.
+
+EDUCATION
+Bachelor of Science in Computer Science
+State University - Graduated May 2020
+- Relevant Coursework: Data Structures, Algorithms, Web Development, Database Systems.
+
+SKILLS
+Programming Languages: JavaScript, TypeScript, Python, SQL, HTML, CSS
+Frameworks & Libraries: React, Node.js, Express.js, Tailwind CSS
+Tools & Technologies: Git, Docker, REST APIs, PostgreSQL, MongoDB, AWS (S3, EC2)
+Soft Skills: Problem Solving, Teamwork, Effective Communication, Time Management

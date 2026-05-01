@@ -87,8 +87,11 @@ def extract_job_urls_from_page(page, target_role: str) -> list[str]:
     
     Target Role: {target_role}
     
-    Please return a list of the URLs that represent specific job postings that are relevant to the target role. 
-    Do not include pagination links, category links, or irrelevant jobs. Return a maximum of 5 URLs to keep it quick.
+    Please return a list of the URLs that represent specific job postings that are STRICTLY relevant to the target role '{target_role}'. 
+    Do not include pagination links, category links, or irrelevant jobs. 
+    If NO jobs match the target role '{target_role}', you MUST return an empty list. 
+    Do not return jobs for other roles (e.g. do not return Software Engineer if the target role is Customer Support).
+    Return a maximum of 5 URLs to keep it quick.
     """)
     
     print("Asking LLM to filter job links from page...")
