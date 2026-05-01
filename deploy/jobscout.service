@@ -1,0 +1,26 @@
+[Unit]
+Description=Job Scout AI — FastAPI backend
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/job-scout-ai
+EnvironmentFile=/var/www/job-scout-ai/.env
+
+# Use the venv's uvicorn; workers=1 because Playwright is not thread-safe
+ExecStart=/var/www/job-scout-ai/venv/bin/uvicorn api:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 1 \
+    --log-level info
+
+Restart=always
+RestartSec=5
+
+# Allow Playwright / Chromium to run
+NoNewPrivileges=false
+PrivateTmp=false
+
+[Install]
+WantedBy=multi-user.target

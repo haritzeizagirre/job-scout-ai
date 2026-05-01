@@ -2,6 +2,12 @@ playwright
 langgraph
 langchain-openai
 python-dotenv
-pydantic
+pydantic[email]
 fastapi
 uvicorn
+libsql-client
+python-jose[cryptography]
+bcrypt
+httpx
+aiofiles
+email-validator

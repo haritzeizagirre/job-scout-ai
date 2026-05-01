@@ -3,114 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Job Scout Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <title>Job Scout AI — Haritz Eizagirre</title>
+    <meta name="description" content="AI-powered job scouting tool that finds matching roles, evaluates them against your CV, and writes cover letters automatically.">
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Job Scout AI</h1>
-            <p>By Haritz Eizagirre</p>
-            <nav class="tabs">
-                <button id="tabDashboard" class="tab-btn active">Dashboard</button>
-                <button id="tabMatches" class="tab-btn">Matches</button>
-            </nav>
-        </header>
-        
-        <main>
-            <!-- DASHBOARD VIEW -->
-            <div id="view-dashboard" class="view active">
-                <section class="card cv-section">
-                    <h2>Your Resume / CV</h2>
-                    <textarea id="cvInput" placeholder="Paste your CV here..."></textarea>
-                    <div class="action-row">
-                        <button id="saveCvBtn" class="btn secondary-btn">Save CV</button>
-                        <button id="fillExampleBtn" class="btn secondary-btn" style="background-color: #e5ede7;">Fill with Example</button>
-                        <span id="saveStatus" class="status-msg"></span>
-                    </div>
-                </section>
 
-                <section class="card config-section">
-                    <h2>Scout Configuration</h2>
-                    
-                    <div class="input-group">
-                        <label for="roleSelect">Target Role</label>
-                        <select id="roleSelect">
-                            <option value="Software Engineer">Software Engineer</option>
-                            <option value="Frontend Developer">Frontend Developer</option>
-                            <option value="Backend Developer">Backend Developer</option>
-                            <option value="Full Stack Developer">Full Stack Developer</option>
-                            <option value="Mobile Developer">Mobile Developer</option>
-                            <option value="Data Scientist">Data Scientist</option>
-                            <option value="Machine Learning Engineer">Machine Learning Engineer</option>
-                            <option value="DevOps Engineer">DevOps Engineer</option>
-                            <option value="Product Manager">Product Manager</option>
-                            <option value="UI/UX Designer">UI/UX Designer</option>
-                            <option value="Customer Support">Customer Support</option>
-                            <option value="Other">Other / Custom...</option>
-                        </select>
-                        <input type="text" id="customRoleInput" placeholder="Type your custom role here..." class="hidden" style="margin-top: 12px;">
-                    </div>
+<!-- ═══════════════════════════════════════════════════════════ AUTH MODAL -->
+<div id="authModal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <button id="closeAuthModal" class="modal-close" aria-label="Close">✕</button>
+        <div class="modal-tabs">
+            <button id="authTabLogin" class="auth-tab active">Log In</button>
+            <button id="authTabRegister" class="auth-tab">Register</button>
+        </div>
 
-                    <div class="input-group">
-                        <label for="experienceSelect">Experience Level</label>
-                        <select id="experienceSelect">
-                            <option value="Any">Any Experience Level</option>
-                            <option value="Entry Level / Junior">Entry Level / Junior</option>
-                            <option value="Mid-Level">Mid-Level</option>
-                            <option value="Senior / Lead">Senior / Lead</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group">
-                        <label for="additionalFilters">Additional Filters (Optional)</label>
-                        <input type="text" id="additionalFilters" placeholder="e.g. Must be remote in Europe, No agencies...">
-                    </div>
-
-                    <div class="input-group">
-                        <label for="boardSelect">Select Boards (Multi-select)</label>
-                        <select id="boardSelect" multiple size="4">
-                            <!-- Populated by JS -->
-                        </select>
-                    </div>
-                </section>
-
-                <section class="execute-section">
-                    <button id="executeBtn" class="btn primary-btn large-btn">Start Scouting</button>
-                    <div id="executeStatus" class="status-msg execute-status"></div>
-                </section>
+        <!-- Login form -->
+        <form id="loginForm" class="auth-form">
+            <div class="input-group">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email" required>
             </div>
+            <div class="input-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required>
+            </div>
+            <p id="loginError" class="auth-error hidden"></p>
+            <button type="submit" class="btn primary-btn" style="width:100%;">Log In</button>
+        </form>
 
-            <!-- MATCHES LIST VIEW -->
-            <div id="view-matches" class="view hidden">
-                <section class="card results-section">
-                    <div class="results-header">
-                        <h2>Job Matches</h2>
+        <!-- Register form -->
+        <form id="registerForm" class="auth-form hidden">
+            <div class="input-group">
+                <label for="regEmail">Email</label>
+                <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email" required>
+            </div>
+            <div class="input-group">
+                <label for="regPassword">Password <span class="muted">(min 8 chars)</span></label>
+                <input type="password" id="regPassword" placeholder="••••••••" autocomplete="new-password" required>
+            </div>
+            <p id="registerError" class="auth-error hidden"></p>
+            <button type="submit" class="btn primary-btn" style="width:100%;">Create Account</button>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ MAIN APP -->
+<div class="container">
+    <header>
+        <h1>Job Scout AI</h1>
+        <p>By Haritz Eizagirre</p>
+
+        <!-- User bar -->
+        <div id="userBar" class="user-bar hidden">
+            <div id="userInfo" class="user-info">
+                <span id="userEmail" class="user-email"></span>
+                <span id="userRole" class="role-badge"></span>
+            </div>
+            <div id="usageMeter" class="usage-meter hidden">
+                <span id="usageLabel"></span>
+                <div class="usage-bar-track">
+                    <div id="usageBarFill" class="usage-bar-fill"></div>
+                </div>
+            </div>
+            <button id="logoutBtn" class="btn secondary-btn sm-btn">Log Out</button>
+        </div>
+
+        <!-- Guest banner -->
+        <div id="guestBanner" class="guest-banner">
+            <span>👤 Using as guest — <strong>1 free scan/month</strong>.</span>
+            <button id="openAuthBtn" class="btn primary-btn sm-btn">Register for more</button>
+        </div>
+
+        <nav class="tabs">
+            <button id="tabDashboard" class="tab-btn active">Dashboard</button>
+            <button id="tabMatches" class="tab-btn">Matches</button>
+            <button id="tabHistory" class="tab-btn auth-only hidden">History</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- ─────────────────────────────────────────── DASHBOARD VIEW -->
+        <div id="view-dashboard" class="view active">
+            <section class="card cv-section">
+                <h2>Your Resume / CV</h2>
+                <textarea id="cvInput" placeholder="Paste your CV here..."></textarea>
+                <div class="action-row">
+                    <button id="saveCvBtn" class="btn secondary-btn">Save CV</button>
+                    <button id="fillExampleBtn" class="btn secondary-btn example-btn">Fill with Example</button>
+                    <span id="saveStatus" class="status-msg"></span>
+                </div>
+            </section>
+
+            <section class="card config-section">
+                <h2>Scout Configuration</h2>
+
+                <div class="input-group">
+                    <label for="roleSelect">Target Role</label>
+                    <select id="roleSelect">
+                        <option value="Software Engineer">Software Engineer</option>
+                        <option value="Frontend Developer">Frontend Developer</option>
+                        <option value="Backend Developer">Backend Developer</option>
+                        <option value="Full Stack Developer">Full Stack Developer</option>
+                        <option value="Mobile Developer">Mobile Developer</option>
+                        <option value="Data Scientist">Data Scientist</option>
+                        <option value="Machine Learning Engineer">Machine Learning Engineer</option>
+                        <option value="DevOps Engineer">DevOps Engineer</option>
+                        <option value="Product Manager">Product Manager</option>
+                        <option value="UI/UX Designer">UI/UX Designer</option>
+                        <option value="Customer Support">Customer Support</option>
+                        <option value="Other">Other / Custom...</option>
+                    </select>
+                    <input type="text" id="customRoleInput" placeholder="Type your custom role here..." class="hidden" style="margin-top: 12px;">
+                </div>
+
+                <div class="input-group">
+                    <label for="experienceSelect">Experience Level</label>
+                    <select id="experienceSelect">
+                        <option value="Any">Any Experience Level</option>
+                        <option value="Entry Level / Junior">Entry Level / Junior</option>
+                        <option value="Mid-Level">Mid-Level</option>
+                        <option value="Senior / Lead">Senior / Lead</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="additionalFilters">Additional Filters <span class="muted">(Optional)</span></label>
+                    <input type="text" id="additionalFilters" placeholder="e.g. Must be remote in Europe, No agencies...">
+                </div>
+
+                <div class="input-group">
+                    <label for="boardSelect">Select Boards <span class="muted">(Multi-select)</span></label>
+                    <select id="boardSelect" multiple size="4">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+            </section>
+
+            <section class="execute-section">
+                <button id="executeBtn" class="btn primary-btn large-btn">Start Scouting</button>
+                <div id="executeStatus" class="status-msg execute-status"></div>
+            </section>
+        </div>
+
+        <!-- ─────────────────────────────────────────── MATCHES VIEW -->
+        <div id="view-matches" class="view hidden">
+            <section class="card results-section">
+                <div class="results-header">
+                    <h2>Job Matches</h2>
+                    <div class="results-controls">
+                        <button id="toggleNonMatches" class="btn secondary-btn sm-btn">Show Rejected</button>
                         <button id="refreshBtn" class="btn secondary-btn">Refresh</button>
                     </div>
-                    <div id="resultsContainer" class="results-container">
-                        <p class="status-msg">Click Refresh to load matched jobs.</p>
-                    </div>
-                </section>
-            </div>
+                </div>
 
-            <!-- MATCH DETAIL VIEW -->
-            <div id="view-detail" class="view hidden">
-                <section class="card detail-section">
-                    <div class="detail-header">
-                        <button id="backBtn" class="btn secondary-btn">&larr; Back to Matches</button>
-                        <h2 id="detailTitle" style="margin-left: 16px;"></h2>
-                    </div>
-                    <div id="detailContent" class="match-content">
-                        <!-- Rendered Markdown goes here -->
-                    </div>
-                </section>
-            </div>
-        </main>
-    </div>
+                <!-- Matches list -->
+                <div id="resultsContainer" class="results-container"></div>
 
-    <script src="main.js"></script>
+                <!-- Non-matches panel (hidden by default) -->
+                <div id="nonMatchesPanel" class="non-matches-panel hidden">
+                    <div class="non-matches-header">
+                        <h3>Rejected Jobs <span class="muted">(skip-listed for future runs)</span></h3>
+                    </div>
+                    <div id="nonMatchesContainer" class="non-matches-container"></div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ─────────────────────────────────────────── DETAIL VIEW -->
+        <div id="view-detail" class="view hidden">
+            <section class="card detail-section">
+                <div class="detail-header">
+                    <button id="backBtn" class="btn secondary-btn">&larr; Back</button>
+                    <h2 id="detailTitle" style="margin-left: 16px;"></h2>
+                </div>
+                <div id="detailContent" class="match-content"></div>
+            </section>
+        </div>
+
+        <!-- ─────────────────────────────────────────── HISTORY VIEW -->
+        <div id="view-history" class="view hidden">
+            <section class="card">
+                <h2>Scout Run History</h2>
+                <div id="historyContainer" class="history-container">
+                    <p class="status-msg">Loading history...</p>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script src="main.js"></script>
 </body>
 </html>
