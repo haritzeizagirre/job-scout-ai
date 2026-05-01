@@ -6,11 +6,10 @@ An automated AI assistant designed to streamline the job search process using La
 
 ## Current Features
 
-- **Live Web Scraping**: Uses Playwright to navigate to job URLs in a visible browser window, allowing you to bypass captchas or login walls manually if needed.
+- **Autonomous Job Board Navigator**: Automatically navigates supported job boards (like JustRemote, NoDesk, Working Nomads), searches for your target role using an LLM-powered agent, and extracts the relevant job links.
 - **Smart Adapter Pattern**: Automatically selects the best extraction strategy based on the URL:
-  - **LinkedIn Adapter**: Fast extraction using specific CSS selectors.
-  - **InfoJobs Adapter**: Fast extraction for InfoJobs listings.
-  - **Generic AI Adapter**: A smart fallback for unknown company career pages. It extracts the raw page text and uses OpenAI to structure the job title, company, and description.
+  - **JustRemote / NoDesk / WorkingNomads Adapters**: Fast extraction using specific CSS selectors for these boards.
+  - **Generic AI Adapter**: A smart fallback for unknown pages. It extracts raw page text and uses OpenAI to structure the job title, company, and description.
 - **AI Evaluator**: Acts as a strict technical recruiter, comparing the extracted job requirements to your CV and deciding if you are a match.
 - **AI Drafter**: If the Evaluator determines a match, the Drafter automatically writes a professional, 3-paragraph cover letter highlighting your specific overlapping skills.
 
@@ -43,15 +42,18 @@ An automated AI assistant designed to streamline the job search process using La
    OPENROUTER_API_KEY="your_api_key_here"
    OPENAI_API_KEY="${OPENROUTER_API_KEY}"
    OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+   TARGET_ROLE="Software Engineer"
    ```
 
 ## How to Use
 
 1. **Add Your CV**: Update the `my_cv.txt` file with your own resume/CV information.
-2. **Add Job URLs**: Open `urls.txt` and paste the URLs of the job postings you want to apply for (one URL per line).
-3. **Run the Application**:
+2. **Configure Target Role**: Ensure `TARGET_ROLE` in your `.env` matches the job title you are looking for.
+3. **Configure Boards**: Open `boards.txt` and ensure the job boards you want to scan are listed (e.g., `https://justremote.co`).
+4. **Run the Application**:
    ```bash
    python main.py
    ```
-4. **Monitor the Browser**: A browser window will pop up. The script will wait on each page to let it load. If you hit a login wall (like on LinkedIn), quickly log in manually. The script will continue extracting once the page is loaded.
-5. **Review Cover Letters**: The script will output its evaluations to the console. For any jobs that are a match, it will save a customized cover letter in the `outputs/` directory (e.g., `outputs/company-name_job-title.md`).
+5. **Select Boards**: The script will prompt you in the terminal to select which board to scan, or press Enter to scan all of them.
+6. **Monitor the Browser**: A browser window will pop up. The script's LLM agent will autonomously navigate the site, search for your role, extract job links, and evaluate them.
+7. **Review Cover Letters**: For any jobs that are a match, the script will save a customized cover letter in the `outputs/` directory (e.g., `outputs/company-name_job-title.md`).

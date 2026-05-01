@@ -15,40 +15,59 @@ class BaseAdapter(ABC):
     def extract(self, page: Page) -> JobDetails:
         pass
 
-class LinkedInAdapter(BaseAdapter):
+class JustRemoteAdapter(BaseAdapter):
     def extract(self, page: Page) -> JobDetails:
-        # LinkedIn public job pages usually have these selectors
         try:
-            job_title = page.locator("h1.top-card-layout__title, h1").first.inner_text(timeout=5000)
+            job_title = page.locator("h1").first.inner_text(timeout=5000)
         except Exception:
-            job_title = "Unknown LinkedIn Title"
+            job_title = "Unknown JustRemote Title"
             
         try:
-            company = page.locator("a.topcard__org-name-link, span.topcard__flavor").first.inner_text(timeout=5000)
+            # JustRemote often puts the company name in an h2 or a div near the top
+            company = page.locator("h2, .company-name").first.inner_text(timeout=5000)
         except Exception:
-            company = "Unknown LinkedIn Company"
+            company = "Unknown JustRemote Company"
             
         try:
-            job_description = page.locator("div.show-more-less-html__markup, div.description__text").first.inner_text(timeout=5000)
+            job_description = page.locator(".job-description, article, main").first.inner_text(timeout=5000)
         except Exception:
             job_description = page.locator("body").inner_text(timeout=5000)
             
         return JobDetails(job_title=job_title.strip(), company=company.strip(), job_description=job_description.strip())
 
-class InfoJobsAdapter(BaseAdapter):
+class NoDeskAdapter(BaseAdapter):
     def extract(self, page: Page) -> JobDetails:
         try:
-            job_title = page.locator("h1.title, h1").first.inner_text(timeout=5000)
+            job_title = page.locator("h1").first.inner_text(timeout=5000)
         except Exception:
-            job_title = "Unknown InfoJobs Title"
+            job_title = "Unknown NoDesk Title"
             
         try:
-            company = page.locator("a.link, .company-name").first.inner_text(timeout=5000)
+            company = page.locator("h2, .company-title, a.company").first.inner_text(timeout=5000)
         except Exception:
-            company = "Unknown InfoJobs Company"
+            company = "Unknown NoDesk Company"
             
         try:
-            job_description = page.locator("#tracking-scroll-description, .description").first.inner_text(timeout=5000)
+            job_description = page.locator(".job-description, .content, main").first.inner_text(timeout=5000)
+        except Exception:
+            job_description = page.locator("body").inner_text(timeout=5000)
+            
+        return JobDetails(job_title=job_title.strip(), company=company.strip(), job_description=job_description.strip())
+
+class WorkingNomadsAdapter(BaseAdapter):
+    def extract(self, page: Page) -> JobDetails:
+        try:
+            job_title = page.locator("h1, h2.title").first.inner_text(timeout=5000)
+        except Exception:
+            job_title = "Unknown WorkingNomads Title"
+            
+        try:
+            company = page.locator(".company, .company-name").first.inner_text(timeout=5000)
+        except Exception:
+            company = "Unknown WorkingNomads Company"
+            
+        try:
+            job_description = page.locator(".description, .job-details, main").first.inner_text(timeout=5000)
         except Exception:
             job_description = page.locator("body").inner_text(timeout=5000)
             
@@ -93,12 +112,15 @@ class GenericAIAdapter(BaseAdapter):
 class AdapterFactory:
     @staticmethod
     def get_adapter(url: str) -> BaseAdapter:
-        if "linkedin.com" in url.lower():
-            print("=> Using LinkedInAdapter")
-            return LinkedInAdapter()
-        elif "infojobs.net" in url.lower():
-            print("=> Using InfoJobsAdapter")
-            return InfoJobsAdapter()
+        if "justremote.co" in url.lower():
+            print("=> Using JustRemoteAdapter")
+            return JustRemoteAdapter()
+        elif "nodesk.co" in url.lower():
+            print("=> Using NoDeskAdapter")
+            return NoDeskAdapter()
+        elif "workingnomads.com" in url.lower():
+            print("=> Using WorkingNomadsAdapter")
+            return WorkingNomadsAdapter()
         else:
             print("=> Using GenericAIAdapter")
             return GenericAIAdapter()

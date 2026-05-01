@@ -1,7 +1,9 @@
 import os
 import re
 from dotenv import load_dotenv
-from src.scraper import scrape_live_url
+from playwright.sync_api import sync_playwright
+from src.scraper import scrape_live_url, extract_job_urls_from_page
+from src.navigator import navigate_to_role_page
 from src.graph import build_graph
 
 # Load environment variables
@@ -19,15 +21,64 @@ def main():
 
     # 2. Read URLs
     urls = []
-    if os.path.exists("urls.txt"):
-        with open("urls.txt", "r", encoding="utf-8") as f:
-            urls = [line.strip() for line in f if line.strip()]
-    else:
-        print("urls.txt not found. Please create it and add job URLs.")
-        return
+    # if os.path.exists("urls.txt"):
+    #     with open("urls.txt", "r", encoding="utf-8") as f:
+    #         urls = [line.strip() for line in f if line.strip()]
+
+    # 3. Discover URLs from job boards
+    target_role = os.environ.get("TARGET_ROLE", "Software Engineer")
+    if os.path.exists("boards.txt"):
+        with open("boards.txt", "r", encoding="utf-8") as f:
+            boards = [line.strip() for line in f if line.strip()]
+            
+        if boards:
+            print("\nAvailable boards:")
+            for idx, b in enumerate(boards):
+                print(f"{idx + 1}. {b}")
+            print(f"{len(boards) + 1}. All of them")
+            
+            choice = input("\nSelect an option by number (default is All): ").strip()
+            
+            if choice and choice.isdigit():
+                choice_idx = int(choice) - 1
+                if 0 <= choice_idx < len(boards):
+                    boards = [boards[choice_idx]]
+                elif choice_idx == len(boards):
+                    pass # all
+                else:
+                    print("Invalid choice, running all.")
+                    
+            print(f"\nDiscovering job links for '{target_role}' from boards...")
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=False)
+                context = browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                )
+                
+                for board_url in boards:
+                    print(f"\n--- Navigating Board: {board_url} ---")
+                    page = context.new_page()
+                    try:
+                        page.goto(board_url, wait_until="domcontentloaded", timeout=60000)
+                        page.wait_for_timeout(3000)
+                        
+                        # Use Navigator to find the jobs
+                        success = navigate_to_role_page(page, target_role)
+                        if success:
+                            discovered = extract_job_urls_from_page(page, target_role)
+                            print(f"Discovered {len(discovered)} jobs on {board_url}")
+                            urls.extend(discovered)
+                        else:
+                            print(f"Failed to navigate {board_url}")
+                    except Exception as e:
+                        print(f"Error exploring board {board_url}: {e}")
+                    finally:
+                        page.close()
+                
+                browser.close()
 
     if not urls:
-        print("urls.txt is empty. Please add some job URLs.")
+        print("No job URLs found in urls.txt and no jobs discovered from boards.txt. Exiting.")
         return
 
     # 3. Build graph
