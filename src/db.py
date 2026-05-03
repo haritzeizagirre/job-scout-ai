@@ -5,6 +5,7 @@ Uses libsql-client (HTTP driver, works with Turso cloud).
 import os
 import uuid
 import json
+import secrets
 from datetime import datetime
 from typing import Optional
 
@@ -38,7 +39,14 @@ CREATE TABLE IF NOT EXISTS users (
     email         TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role          TEXT NOT NULL DEFAULT 'free',
+    is_verified   INTEGER NOT NULL DEFAULT 0,
     created_at    INTEGER NOT NULL DEFAULT (strftime('%s','now'))
+);
+
+CREATE TABLE IF NOT EXISTS email_verifications (
+    token      TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now'))
 );
 
 CREATE TABLE IF NOT EXISTS usage (
@@ -115,6 +123,18 @@ def init_db():
         if stmt:
             client.execute(stmt)
 
+    # ── Migration: add is_verified to existing databases ─────────────────────
+    # If the column doesn't exist yet, ALTER TABLE adds it (DEFAULT 0) and then
+    # marks all pre-existing users as verified so they aren't locked out.
+    try:
+        client.execute(
+            "ALTER TABLE users ADD COLUMN is_verified INTEGER NOT NULL DEFAULT 0"
+        )
+        # Column was just added — treat all existing users as already verified
+        client.execute("UPDATE users SET is_verified = 1")
+    except Exception:
+        pass  # Column already exists — nothing to do
+
 
 # ---------------------------------------------------------------------------
 # User helpers
@@ -127,20 +147,31 @@ def create_user(email: str, password_hash: str) -> dict:
     # Auto-promote admin emails from env
     admin_emails = [e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()]
     role = "admin" if email.lower() in admin_emails else "free"
+    # Admin emails are auto-verified; everyone else must confirm their address
+    is_verified = 1 if role == "admin" else 0
 
     client.execute(
-        "INSERT INTO users (id, email, password_hash, role) VALUES (?, ?, ?, ?)",
-        [user_id, email, password_hash, role],
+        "INSERT INTO users (id, email, password_hash, role, is_verified) VALUES (?, ?, ?, ?, ?)",
+        [user_id, email, password_hash, role, is_verified],
     )
-    return {"id": user_id, "email": email, "role": role}
+    return {"id": user_id, "email": email, "role": role, "is_verified": bool(is_verified)}
 
 
 def get_user_by_email(email: str) -> Optional[dict]:
     client = get_client()
-    rs = client.execute("SELECT id, email, password_hash, role FROM users WHERE email = ?", [email])
+    rs = client.execute(
+        "SELECT id, email, password_hash, role, is_verified FROM users WHERE email = ?",
+        [email],
+    )
     if rs.rows:
         row = rs.rows[0]
-        return {"id": row[0], "email": row[1], "password_hash": row[2], "role": row[3]}
+        return {
+            "id": row[0],
+            "email": row[1],
+            "password_hash": row[2],
+            "role": row[3],
+            "is_verified": bool(row[4]),
+        }
     return None
 
 
@@ -156,6 +187,40 @@ def get_user_by_id(user_id: str) -> Optional[dict]:
 def set_user_role(email: str, role: str):
     client = get_client()
     client.execute("UPDATE users SET role = ? WHERE email = ?", [role, email])
+
+
+# ---------------------------------------------------------------------------
+# Email verification helpers
+# ---------------------------------------------------------------------------
+
+def create_verification_token(user_id: str) -> str:
+    """Generate a secure random token, store it, and return it."""
+    token = secrets.token_urlsafe(48)
+    client = get_client()
+    client.execute(
+        "INSERT INTO email_verifications (token, user_id) VALUES (?, ?)",
+        [token, user_id],
+    )
+    return token
+
+
+def verify_user_token(token: str) -> Optional[dict]:
+    """
+    Validate a verification token.
+    On success: marks the user as verified, deletes the token, returns the user.
+    On failure: returns None.
+    """
+    client = get_client()
+    rs = client.execute(
+        "SELECT user_id FROM email_verifications WHERE token = ?",
+        [token],
+    )
+    if not rs.rows:
+        return None
+    user_id = rs.rows[0][0]
+    client.execute("UPDATE users SET is_verified = 1 WHERE id = ?", [user_id])
+    client.execute("DELETE FROM email_verifications WHERE token = ?", [token])
+    return get_user_by_id(user_id)
 
 
 # ---------------------------------------------------------------------------

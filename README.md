@@ -113,6 +113,19 @@ JWT_SECRET_KEY=your-secret-here
 
 # Emails that become admins automatically on first registration
 ADMIN_EMAILS=you@example.com
+
+# ── Email verification (Gmail SMTP) ─────────────────────────────
+# 1. Enable 2-Step Verification on your Google account
+# 2. Generate an App Password at: https://myaccount.google.com/apppasswords
+# 3. Use that App Password as SMTP_PASS (NOT your regular Gmail password)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your@gmail.com
+SMTP_PASS=your-gmail-app-password
+EMAIL_FROM=Job Scout AI <your@gmail.com>
+
+# ── Base URL for verification links ─────────────────────────────
+APP_BASE_URL=http://localhost:8000
 ```
 
 ### 5. Add the job boards you want to scan
@@ -147,8 +160,9 @@ Open `frontend/index.html` directly in your browser. That's it — no build step
 
 ## Using the Web Dashboard
 
-1. **Register** — Click the login icon (top-right) and create an account.
-2. **Paste your CV** — Go to the *Dashboard* tab, paste your CV text, and click *Save CV*.
+1. **Register** — Click the login icon (top-right), enter your details, and click *Create Account*.
+2. **Verify your email** — Check your inbox for the activation link. Click it to log in automatically.
+3. **Paste your CV** — Go to the *Dashboard* tab, paste your CV text, and click *Save CV*.
 3. **Configure your search** — Set your target role (e.g. `Backend Engineer`), experience level, and any extra filters (e.g. `Remote only, no startups`).
 4. **Select boards** — Tick the job boards from `boards.txt` that you want to scan.
 5. **Start Scouting** — Click the button. The agent runs in the background; status updates every few seconds.
@@ -211,6 +225,7 @@ job-scout-ai/
 │   ├── navigator.py        # LLM-powered board navigator (Playwright)
 │   ├── db.py               # TursoDB client + all query helpers
 │   ├── auth.py             # JWT + bcrypt auth utilities
+│   ├── email_sender.py     # SMTP verification email logic
 │   ├── limits.py           # Rate limiting (guest / free / admin)
 │   └── adapters/           # Board-specific CSS extractors
 ├── frontend/

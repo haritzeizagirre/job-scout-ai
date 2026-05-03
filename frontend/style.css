@@ -387,3 +387,57 @@ header > p { color: var(--text-muted); margin: 0; font-size: 18px; }
 .hidden { display: none !important; }
 .view { display: block; }
 .view.active { display: block; }
+
+/* ── Email verification UI ─────────────────────────────────────────────────── */
+
+/* Shown inside the auth modal after a successful registration */
+.verify-notice {
+    text-align: center;
+    padding: 24px 8px 8px;
+    animation: slideUp 0.25s ease;
+}
+.verify-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+.verify-notice h3 {
+    margin: 0 0 10px;
+    font-size: 20px;
+    color: var(--primary-color);
+}
+.verify-notice p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+/* Full-width banners that appear at the very top of the page */
+.verify-success-banner,
+.verify-error-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    padding: 14px 24px;
+    text-align: center;
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 500;
+    animation: slideDown 0.3s ease;
+}
+@keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+.verify-success-banner {
+    background: #dcfce7;
+    color: #166534;
+    border-bottom: 1px solid #86efac;
+}
+.verify-error-banner {
+    background: #fee2e2;
+    color: #991b1b;
+    border-bottom: 1px solid #fca5a5;
+}

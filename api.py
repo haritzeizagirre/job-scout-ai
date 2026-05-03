@@ -21,7 +21,10 @@ from src.db import (
     get_user_non_matches,
     save_cv,
     get_active_cv,
+    create_verification_token,
+    verify_user_token,
 )
+from src.email_sender import send_verification_email
 from src.auth import (
     hash_password,
     verify_password,
@@ -99,8 +102,23 @@ def register(req: RegisterRequest):
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
     hashed = hash_password(req.password)
     user = create_user(req.email, hashed)
-    token = create_access_token(user["id"])
-    return {"token": token, "user": {"id": user["id"], "email": user["email"], "role": user["role"]}}
+
+    # Admin emails are auto-verified — log them in immediately
+    if user.get("is_verified"):
+        token = create_access_token(user["id"])
+        return {"token": token, "user": {"id": user["id"], "email": user["email"], "role": user["role"]}}
+
+    # Everyone else: send a verification email and ask them to check their inbox
+    verification_token = create_verification_token(user["id"])
+    try:
+        send_verification_email(req.email, verification_token)
+    except Exception as e:
+        print(f"[WARNING] Could not send verification email to {req.email}: {e}")
+
+    return {
+        "status": "pending_verification",
+        "message": "Account created! Check your inbox for a verification link.",
+    }
 
 
 @app.post("/api/auth/login")
@@ -108,8 +126,29 @@ def login(req: LoginRequest):
     user = get_user_by_email(req.email)
     if not user or not verify_password(req.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
+    if not user.get("is_verified"):
+        raise HTTPException(
+            status_code=403,
+            detail="Please verify your email address before logging in. Check your inbox.",
+        )
     token = create_access_token(user["id"])
     return {"token": token, "user": {"id": user["id"], "email": user["email"], "role": user["role"]}}
+
+
+@app.get("/api/auth/verify")
+def verify_email(token: str):
+    """Verify a user's email address using the one-time token from their inbox."""
+    user = verify_user_token(token)
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail="This verification link is invalid or has already been used.",
+        )
+    jwt_token = create_access_token(user["id"])
+    return {
+        "token": jwt_token,
+        "user": {"id": user["id"], "email": user["email"], "role": user["role"]},
+    }
 
 
 @app.get("/api/auth/me")

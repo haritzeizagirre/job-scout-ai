@@ -207,6 +207,23 @@ registerForm.addEventListener("submit", async e => {
         });
         const data = await res.json();
         if (!res.ok) { registerError.textContent = data.detail || "Registration failed."; registerError.classList.remove("hidden"); return; }
+
+        if (data.status === "pending_verification") {
+            // Account created but email not yet verified — show inbox message
+            registerForm.classList.add("hidden");
+            const msg = document.createElement("div");
+            msg.className = "verify-notice";
+            msg.innerHTML = `
+                <div class="verify-icon">📬</div>
+                <h3>Check your inbox!</h3>
+                <p>We've sent a verification link to <strong>${document.getElementById("regEmail").value}</strong>.<br>
+                Click the link in the email to activate your account.</p>
+            `;
+            registerForm.parentNode.insertBefore(msg, registerForm);
+            return;
+        }
+
+        // Admin email: immediately verified and logged in
         saveAuth(data.token, data.user);
         closeModal();
         onAuthChange();
@@ -571,7 +588,41 @@ function escapeHtml(str) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Email verification — handle ?token= links from inbox
+// ─────────────────────────────────────────────────────────────────────────────
+async function checkVerificationToken() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (!token) return;
+
+    // Clean the token from the URL so a refresh doesn't re-send it
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    try {
+        const res = await fetch(`${API_BASE}/auth/verify?token=${encodeURIComponent(token)}`);
+        const data = await res.json();
+        if (res.ok && data.token) {
+            saveAuth(data.token, data.user);
+            onAuthChange();
+            // Show a brief success banner
+            const banner = document.createElement("div");
+            banner.className = "verify-success-banner";
+            banner.textContent = `✅ Email verified! Welcome, ${data.user.email}.`;
+            document.body.prepend(banner);
+            setTimeout(() => banner.remove(), 5000);
+        } else {
+            const banner = document.createElement("div");
+            banner.className = "verify-error-banner";
+            banner.textContent = `⚠️ ${data.detail || "Verification link is invalid or already used."}`;
+            document.body.prepend(banner);
+            setTimeout(() => banner.remove(), 7000);
+        }
+    } catch (_) {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Init
 // ─────────────────────────────────────────────────────────────────────────────
 loadAuthFromStorage();
 onAuthChange();
+checkVerificationToken();
