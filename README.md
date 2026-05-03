@@ -1,26 +1,41 @@
 # Job Scout AI
 
-**Student:** Haritz Eizagirre
+An automated, AI-powered job hunting agent that searches job boards on your behalf, evaluates each posting against your CV, and drafts a personalised cover letter for every role that's a genuine match.
 
-An automated, multi-user AI assistant that streamlines the job search process. It autonomously navigates job boards, evaluates postings against your personal CV using an LLM, drafts tailored cover letters for matches, and remembers rejected jobs so they are never re-analysed in future runs.
-
-Built with **LangGraph**, **Playwright**, **FastAPI**, **TursoDB**, and a vanilla HTML/JS frontend served via **Nginx on AWS EC2**.
+Built with **LangGraph**, **Playwright**, **FastAPI**, and a vanilla HTML/JS frontend.
 
 ---
 
-## Features
+## What is this?
 
-- **Autonomous Job Board Navigator** — Navigates supported job boards (JustRemote, NoDesk, Working Nomads, etc.), searches for your target role using an LLM-powered agent, and extracts relevant job links.
-- **Smart Adapter Pattern** — Selects the best extraction strategy per URL:
-  - *JustRemote / NoDesk / WorkingNomads Adapters* — Fast CSS-selector-based extraction.
-  - *Generic AI Adapter* — Fallback that uses OpenAI to structure job title, company and description from raw page text.
-- **AI Evaluator** — Strict technical recruiter agent that compares job requirements to your CV and decides if you are a match (with a written reason).
-- **AI Cover Letter Drafter** — Automatically writes a professional, 3-paragraph cover letter for every match.
-- **Non-match Skip List** — Rejected job URLs are stored per user. Future runs skip them instantly, saving time and AI cost.
-- **User Accounts & JWT Auth** — Register/login with email + password. Tokens stored client-side, all API calls are authenticated.
-- **Usage Limits by Tier** — Guests (1 scout run/month, IP-tracked), Free accounts (5 runs/month), Admin accounts (unlimited).
-- **Persistent History** — All scout runs, matches, and non-matches are saved to TursoDB and viewable in the dashboard.
-- **Admin Role** — Promote any user to admin via CLI (`scripts/set_admin.py`). Admins bypass all limits.
+Job Scout AI is a personal assistant for your job search. Instead of manually browsing job boards one by one, you tell it what role you're looking for, paste in your CV, and let it do the rest.
+
+It autonomously opens job boards in a headless browser, finds relevant postings, reads each one, and runs them through an AI evaluator that acts as a strict technical recruiter. Only jobs that genuinely match your profile make it through. For every match, a tailored cover letter is automatically drafted and saved.
+
+Rejected jobs are remembered, so future runs never waste time re-evaluating the same listings.
+
+---
+
+## How it works
+
+The scouting pipeline runs in five stages:
+
+```
+Job Boards  ──►  Navigator  ──►  Scraper  ──►  AI Evaluator  ──►  Cover Letter Drafter
+(boards.txt)     (Playwright)    (adapter)      (LangGraph)         (LangGraph)
+```
+
+1. **Navigator** — Playwright opens each job board and an LLM agent searches for your target role by interacting with the page (search bars, filters, etc.), then extracts all job listing URLs from the results page.
+
+2. **Scraper + Adapters** — Each job URL is visited. Specialised adapters (for JustRemote, NoDesk, WorkingNomads) use fast CSS selectors to extract the job title, company, and description. An AI-powered generic adapter handles any other site by reading raw page text.
+
+3. **AI Evaluator** — A LangGraph node sends the job details and your CV to `gpt-4o-mini`. The prompt enforces strict rules: if the role title or description doesn't match your target role, if the experience level conflicts, or if any of your custom filters are violated, the job is immediately rejected. Only genuinely fitting roles pass.
+
+4. **Cover Letter Drafter** — For every match, a second LangGraph node generates a professional 3-paragraph cover letter tailored to the specific job and company.
+
+5. **Skip List** — Rejected URLs are saved to the database (or tracked in-memory for guests). On future runs they are skipped instantly, saving time and API cost.
+
+Results are surfaced through a web dashboard and also written to the `outputs/` folder as Markdown files.
 
 ---
 
@@ -28,155 +43,158 @@ Built with **LangGraph**, **Playwright**, **FastAPI**, **TursoDB**, and a vanill
 
 | Layer | Technology |
 |---|---|
-| AI Workflow | LangGraph + LangChain + OpenAI (via OpenRouter) |
+| AI Workflow | LangGraph + LangChain + OpenAI / OpenRouter |
 | Web Scraping | Playwright (headless Chromium) |
 | Backend API | FastAPI + Uvicorn |
 | Database | TursoDB (libSQL, cloud HTTP) |
 | Auth | JWT (`python-jose`) + bcrypt (`passlib`) |
 | Frontend | Vanilla HTML / CSS / JavaScript |
-| Reverse Proxy | Nginx |
-| Hosting | AWS EC2 (Ubuntu) |
-
----
-
-## Prerequisites
-
-- Python 3.10+
-- An OpenAI or OpenRouter API key
-- A [Turso](https://turso.tech) account (free tier is sufficient) with a database created
 
 ---
 
 ## Local Setup
 
-1. **Clone the repository and create a virtual environment:**
-   ```bash
-   python -m venv venv
-   # Windows
-   .\venv\Scripts\activate
-   # macOS / Linux
-   source venv/bin/activate
-   ```
+### Prerequisites
 
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+- Python 3.10+
+- An [OpenRouter](https://openrouter.ai) API key (or a direct OpenAI key)
+- A free [Turso](https://turso.tech) database
 
-3. **Install Playwright's Chromium browser:**
-   ```bash
-   playwright install chromium
-   ```
+### 1. Clone and create a virtual environment
 
-4. **Configure environment variables:**
-   Copy `.env.example` to `.env` and fill in your values:
-   ```env
-   OPENROUTER_API_KEY="your_key_here"
-   OPENAI_API_KEY="${OPENROUTER_API_KEY}"
-   OPENAI_BASE_URL="https://openrouter.ai/api/v1"
+```bash
+git clone https://github.com/haritzeizagirre/job-scout-ai.git
+cd job-scout-ai
 
-   TURSO_DATABASE_URL="libsql://your-db.turso.io"
-   TURSO_AUTH_TOKEN="your-turso-token"
+python -m venv venv
 
-   # Generate with: python -c "import secrets; print(secrets.token_hex(32))"
-   JWT_SECRET_KEY="your-strong-random-secret"
+# Windows
+.\venv\Scripts\activate
 
-   # Auto-promote these emails to admin on first register (comma-separated)
-   ADMIN_EMAILS=teacher@example.com
-   ```
+# macOS / Linux
+source venv/bin/activate
+```
 
-5. **Add your job boards:**
-   Edit `boards.txt` — one URL per line:
-   ```
-   https://justremote.co
-   https://nodesk.co
-   https://workingnomads.com/jobs
-   ```
+### 2. Install Python dependencies
 
-6. **Run the API server:**
-   ```bash
-   uvicorn api:app --reload --port 8000
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-7. **Open the frontend:**
-   Open `frontend/index.html` in a browser, or serve it with any static server. The JS uses relative `/api/` paths, which work seamlessly behind Nginx.
+### 3. Install the Playwright browser
+
+```bash
+playwright install chromium
+```
+
+### 4. Configure environment variables
+
+Copy the template and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and set:
+
+```env
+# Your OpenRouter (or OpenAI) key
+OPENROUTER_API_KEY=sk-or-v1-...
+OPENAI_API_KEY=${OPENROUTER_API_KEY}
+OPENAI_BASE_URL=https://openrouter.ai/api/v1
+
+# Turso database
+TURSO_DATABASE_URL=https://your-db.turso.io
+TURSO_AUTH_TOKEN=your-token
+
+# A strong random secret for JWT tokens
+# Generate one with: python -c "import secrets; print(secrets.token_hex(32))"
+JWT_SECRET_KEY=your-secret-here
+
+# Emails that become admins automatically on first registration
+ADMIN_EMAILS=you@example.com
+```
+
+### 5. Add the job boards you want to scan
+
+Edit `boards.txt` — one URL per line:
+
+```
+https://justremote.co
+https://nodesk.co
+https://workingnomads.com/jobs
+```
+
+### 6. Start the backend API
+
+```bash
+uvicorn api:app --reload --port 8000
+```
+
+The API is now running at `http://localhost:8000`.
+
+### 7. Open the frontend
+
+Open `frontend/index.html` directly in your browser. That's it — no build step needed.
+
+> **Tip:** If you prefer serving it with a local server (to avoid any browser CORS restrictions):
+> ```bash
+> python -m http.server 3000 --directory frontend
+> ```
+> Then visit `http://localhost:3000`.
 
 ---
 
-## How to Use (Web UI)
+## Using the Web Dashboard
 
-1. **Register** an account via the login modal (top-right of the header).
-2. **Paste your CV** in the Dashboard and click *Save CV*.
-3. **Configure** your target role, experience level, optional filters, and select the boards to scan.
-4. **Click *Start Scouting*** — the agent runs in the background (headless browser).
-5. **Monitor progress** — the status message updates every 3 seconds.
-6. **View Matches** — switch to the *Matches* tab to see matching jobs and open their cover letters.
-7. **View Rejected Jobs** — click *Show Rejected* to see non-matches with the AI's rejection reasons. These URLs are skip-listed for all your future runs.
-8. **View History** — the *History* tab (logged-in users only) shows all past scout runs with match and skip counts.
-
----
-
-## Promoting a User to Admin (Unlimited Access)
-
-After the user has registered via the web app, run this once on the server:
-
-```bash
-python scripts/set_admin.py teacher@example.com
-```
-
-The user is immediately promoted. Admin accounts have no monthly limits.
-
-> **Tip:** You can also pre-configure `ADMIN_EMAILS=teacher@example.com` in `.env` so they are auto-promoted the moment they register.
+1. **Register** — Click the login icon (top-right) and create an account.
+2. **Paste your CV** — Go to the *Dashboard* tab, paste your CV text, and click *Save CV*.
+3. **Configure your search** — Set your target role (e.g. `Backend Engineer`), experience level, and any extra filters (e.g. `Remote only, no startups`).
+4. **Select boards** — Tick the job boards from `boards.txt` that you want to scan.
+5. **Start Scouting** — Click the button. The agent runs in the background; status updates every few seconds.
+6. **View Matches** — Switch to the *Matches* tab. Each card shows the job title, company, why it matched, and the generated cover letter.
+7. **View Rejected Jobs** — Click *Show Rejected* to see non-matches and the AI's rejection reason.
+8. **View History** — The *History* tab shows all past scouting runs with match and skip counts.
 
 ---
 
-## AWS EC2 + Nginx Deployment
+## Running the CLI (no frontend needed)
 
-### 1. Install system dependencies on the EC2 instance
-
-```bash
-sudo apt update && sudo apt install -y nginx python3-pip python3-venv
-```
-
-### 2. Copy the project and install Python deps
+For a quick local test without the web UI:
 
 ```bash
-sudo mkdir -p /var/www/job-scout-ai
-sudo cp -r . /var/www/job-scout-ai/
-cd /var/www/job-scout-ai
-python3 -m venv venv
-./venv/bin/pip install -r requirements.txt
-./venv/bin/playwright install chromium
-./venv/bin/playwright install-deps
+python main.py
 ```
 
-### 3. Configure Nginx
+It reads `my_cv.txt` and `boards.txt`, lets you select which board to scan, and saves any matches as Markdown files inside `outputs/`.
+
+To set the target role via environment variable:
 
 ```bash
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/jobscout
-sudo ln -s /etc/nginx/sites-available/jobscout /etc/nginx/sites-enabled/
-# Edit the file and replace your-domain.com with your actual domain
-sudo nano /etc/nginx/sites-available/jobscout
-sudo nginx -t && sudo systemctl reload nginx
+TARGET_ROLE="Data Engineer" python main.py
 ```
 
-### 4. Install and start the systemd service
+---
+
+## Promoting a user to Admin (unlimited runs)
+
+After a user has registered through the web app, run:
 
 ```bash
-sudo cp deploy/jobscout.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable jobscout
-sudo systemctl start jobscout
-sudo systemctl status jobscout
+python scripts/set_admin.py their@email.com
 ```
 
-### 5. Enable HTTPS (optional but recommended)
+Admins bypass the monthly usage limits. You can also pre-configure `ADMIN_EMAILS` in `.env` to auto-promote specific addresses on registration.
 
-```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d your-domain.com
-```
-Then uncomment the HTTPS block in `deploy/nginx.conf`.
+---
+
+## Usage Limits
+
+| Tier | Scout Runs / Month | Tracking |
+|---|---|---|
+| Guest (no account) | 1 | By IP address |
+| Free (registered) | 5 | By user in database |
+| Admin | Unlimited | No limit applied |
 
 ---
 
@@ -185,12 +203,12 @@ Then uncomment the HTTPS block in `deploy/nginx.conf`.
 ```
 job-scout-ai/
 ├── api.py                  # FastAPI app — all HTTP routes
-├── main.py                 # Core scouting logic (Playwright + LangGraph)
+├── main.py                 # CLI entry point + core scouting logic
 ├── src/
 │   ├── agents.py           # LLM agents: Evaluator + Cover Letter Drafter
 │   ├── graph.py            # LangGraph workflow definition
 │   ├── scraper.py          # Job page scraper + adapter selection
-│   ├── navigator.py        # LLM-powered board navigator
+│   ├── navigator.py        # LLM-powered board navigator (Playwright)
 │   ├── db.py               # TursoDB client + all query helpers
 │   ├── auth.py             # JWT + bcrypt auth utilities
 │   ├── limits.py           # Rate limiting (guest / free / admin)
@@ -201,20 +219,8 @@ job-scout-ai/
 │   └── style.css           # Styles
 ├── scripts/
 │   └── set_admin.py        # CLI: promote user to admin
-├── deploy/
-│   ├── nginx.conf          # Nginx reverse proxy config
-│   └── jobscout.service    # systemd service definition
 ├── boards.txt              # Job board URLs to scan
+├── my_cv.txt               # Your CV (used by the CLI)
 ├── .env.example            # Environment variable template
 └── requirements.txt        # Python dependencies
 ```
-
----
-
-## Usage Limits
-
-| Tier | Scout Runs / Month | How tracked |
-|---|---|---|
-| Guest (no account) | 1 | By IP address |
-| Free (registered) | 5 | By user in database |
-| Admin | Unlimited | Bypasses all checks |

@@ -1,15 +1,35 @@
 # Environment
 .env
 venv/
-__pycache__/
-*.pyc
 
-# Outputs
+# Python cache (all levels)
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Outputs — generated match files, never commit these
 outputs/
 
-# User Data
+# User Data — personal files, not for the repo
 my_cv.txt
 urls.txt
 
-# Development
+# Development helpers
 mock_data/
+
+# Local database files (if anyone tests with SQLite locally)
+*.db
+*.sqlite
+*.sqlite3
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
