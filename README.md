@@ -1,5 +1,7 @@
 # Job Scout AI by Haritz Eizagirre
 
+### You can try it in [gaise.haritzeizagirre.eus](https://gaise.haritzeizagirre.eus)
+
 An automated, AI-powered job hunting agent that searches job boards on your behalf, evaluates each posting against your CV, and drafts a personalised cover letter for every role that's a genuine match.
 
 Built with **LangGraph**, **Playwright**, **FastAPI**, and a vanilla HTML/JS frontend.
